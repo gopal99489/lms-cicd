@@ -5,38 +5,110 @@ pipeline {
 
     environment {
 
-    DOCKERHUB_CREDENTIALS = credentials('dockeruser')
-     registry = "mubeen507/frontend-lms"
-        registryCredential = 'dockerhub'
+    DOCKERHUB_CREDENTIALS = credentials('yoursureshdockerhub')
+     registry = "gopal99489/lms-frontend"
+        registryCredential = 'dockeruser'
+        dockerImage = ''
     }
 
     stages {
         
-
-        stage('Building the docker image') {
+         stage('pipeline status') {
             steps {
-                sh 'cd webapp && docker build -t mubeen507/frontend-lms .'
+                script {
+                    slackSend channel: 'jenkins',
+                            color: '#1e1ec9',
+                            message: 'lms-Frontend Pipeline has been Started',
+                            tokenCredentialId: 'slackuser'
+                }
             }
         }
-        stage('Logging into dockerhub account') {
+        
+
+
+         stage('nexus artifacts') {
+            steps {
+                script {
+                    def zipInstalled = sh(script: 'dpkg -s zip', returnStatus: true)
+                    if (zipInstalled == 0) {
+                        echo 'zip is already installed'
+                    } else {
+                        echo 'zip is not installed, installing...'
+                        sh 'sudo apt update'
+                        sh 'sudo apt install -y zip'
+                    }
+                }
+                script {
+                    echo "Releasing.."       
+                    def packageJSON = readJSON file: 'webapp/package.json'
+                    def packageJSONVersion = packageJSON.version
+                    echo "${packageJSONVersion}"  
+                    sh "zip -r webapp/dist-0.0.0.zip . -i webapp/dist"
+                    sh "curl -v -u admin:admin1 --upload-file webapp/dist-${packageJSONVersion}.zip http://20.235.76.248:8081/repository/lms/"     
+            }
+            }
+        }
+
+        stage('Building frontend image') {
+            steps {
+                sh 'cd webapp && docker build -t gopal99489/lms-frontend .'
+            }
+        }
+
+        stage('sonarqube code-checking') {
+            steps {
+               
+                sh 'docker container run --rm -e SONAR_HOST_URL="http://3.110.204.77:9000" -e SONAR_LOGIN="sqp_b10172d84b590ca554b01c0fbfd5145863e23ab3" -v ".:/usr/src" sonarsource/sonar-scanner-cli -Dsonar.projectKey=lms-frontend'
+            }
+          
+        }
+
+
+
+        stage('docker-login') {
             steps {
                 sh 'echo $DOCKERHUB_CREDENTIALS_PSW | docker login -u $DOCKERHUB_CREDENTIALS_USR --password-stdin'
             }
         }
-        stage('pushing the docker image into dockerhub') {
+
+        stage('pushing image to dockerhub') {
             steps {
-                  sh 'docker push mubeen507/frontend-lms'
+                  sh 'docker push gopal99489/lms-frontend'
             }
         }
-        stage('Remove old docker images') {
+
+        stage('Remove old images') {
              steps {
-                 sh 'docker rmi -f mubeen507/frontend-lms'
+                 sh 'docker rmi -f gopal99489/lms-frontend'
             }
         }
-         stage('Running the docker container') {
+
+         stage('Running container') {
             steps {
-                  sh 'docker container rm --force fe'
-                  sh 'docker run -dt -p 80:80 --name fe mubeen507/frontend-lms'
+                  sh 'docker container rm --force f-end'
+                  sh 'docker run -dt -p 8000:80 --name f-end gopal99489/lms-frontend'
+            }
+        }
+    }
+
+    post {
+        success {
+            script {
+                slackSend channel: 'jenkins-updates', color: 'good', message: 'hi..CONGRATULATIONS Front-end job success !!!  Front_end build succeeded Thanks...Gopal', tokenCredentialId: 'slackuser'
+                slackUploadFile channel: 'jenkins-updates', credentialId: 'slackuser', filePath: 'webapp/frontend'
+                emailext body: ''' building lms application frontend job got success check browser with your ip or domain name. 
+
+ThankYou,
+Gopal''', recipientProviders: [buildUser()], subject: 'Build Successful !! lms_frontend', to: 'gopal99489@gmail.com'
+            }
+        }
+        failure {
+            script {
+                slackSend channel: 'jenkins-updates', color: 'danger', message: 'Oops..FAILED Front-end job failed !!! check the front-end job configurations Thanks...Gopal - Job failed', tokenCredentialId: 'slackuser'
+                emailext body: '''building lms application frontend job got failed check job configuration.  
+
+ThankYou,
+Suresh''', recipientProviders: [buildUser()], subject: 'Build failed !! lms_frontend', to: 'gopal99489@gmail.com'
             }
         }
     }
