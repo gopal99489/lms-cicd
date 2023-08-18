@@ -5,7 +5,7 @@ pipeline {
 
     environment {
 
-    DOCKERHUB_CREDENTIALS = credentials('yoursureshdockerhub')
+    DOCKERHUB_CREDENTIALS = credentials('dockeruser')
      registry = "gopal99489/lms-frontend"
         registryCredential = 'dockeruser'
         dockerImage = ''
@@ -16,7 +16,7 @@ pipeline {
          stage('pipeline status') {
             steps {
                 script {
-                    slackSend channel: 'jenkins',
+                    slackSend channel: 'jenkins-updates',
                             color: '#1e1ec9',
                             message: 'lms-Frontend Pipeline has been Started',
                             tokenCredentialId: 'slackuser'
@@ -26,7 +26,7 @@ pipeline {
         
 
 
-      /*   stage('nexus artifacts') {
+         stage('nexus artifacts') {
             steps {
                 script {
                     def zipInstalled = sh(script: 'dpkg -s zip', returnStatus: true)
@@ -44,10 +44,10 @@ pipeline {
                     def packageJSONVersion = packageJSON.version
                     echo "${packageJSONVersion}"  
                     sh "zip -r webapp/dist-0.0.0.zip . -i webapp/dist"
-                    sh "curl -v -u admin:admin1 --upload-file webapp/dist-${packageJSONVersion}.zip http://20.235.76.248:8081/repository/lms/"     
+                    sh "curl -v -u admin:gopal --upload-file webapp/dist-${packageJSONVersion}.zip http://3.110.204.77:8081/repository/lms/"     
             }
             }
-        }  */
+        }  
 
         stage('Building frontend image') {
             steps {
