@@ -17,7 +17,7 @@ pipeline {
                     slackSend(
                         channel: 'jenkins-updates',
                         color: '#FFFF00',
-                        message: 'lms-Frontend Pipeline has been Started',
+                        message: 'lms-Backend Pipeline has been Started',
                         tokenCredentialId: 'slackuser'
                     )
                 }
@@ -69,21 +69,21 @@ pipeline {
                 slackSend(
                     channel: 'jenkins-updates',
                     color: 'good',
-                    message: 'Congratulations! Front-end job succeeded. Thanks...Gopal',
+                    message: 'Congratulations! Back-end job succeeded. Thanks...Gopal',
                     tokenCredentialId: 'slackuser'
                 )
                 slackUploadFile(
                     channel: 'jenkins-updates',
                     credentialId: 'slackuser',
-                    filePath: 'webapp/frontend'
+                    filePath: 'api/backend'
                 )
                 emailext (
-                    body: '''Building lms application frontend job succeeded. Check browser with your IP or domain name.
+                    body: '''Building lms application backend job succeeded. Check browser with your IP or domain name.
 
 Thank you,
 Gopal''',
                     recipientProviders: [buildUser()],
-                    subject: 'Build Successful!! lms_frontend',
+                    subject: 'Build Successful!! lms_backend',
                     to: 'gopal99489@gmail.com'
                 )
             }
@@ -93,16 +93,16 @@ Gopal''',
                 slackSend(
                     channel: 'jenkins-updates',
                     color: 'danger',
-                    message: 'Oops... Front-end job failed! Check the job configurations. Thanks...Gopal - Job failed',
+                    message: 'Oops... Back-end job failed! Check the job configurations. Thanks...Gopal - Job failed',
                     tokenCredentialId: 'slackuser'
                 )
                 emailext (
-                    body: '''Building lms application frontend job failed. Check job configuration.
+                    body: '''Building lms application backend job failed. Check job configuration.
 
 Thank you,
 Gopal''',
                     recipientProviders: [buildUser()],
-                    subject: 'Build failed!! lms_frontend',
+                    subject: 'Build failed!! lms_backend',
                     to: 'gopal99489@gmail.com'
                 )
             }
