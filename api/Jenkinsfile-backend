@@ -1,50 +1,110 @@
-Jenkins file 
 pipeline {
-    agent{
-       label 'docker'
+    agent {
+        label 'docker'
     }
 
     environment {
-
-    DOCKERHUB_CREDENTIALS = credentials('dockeruser')
-     registry = "mubeen507/backend-lms"
+        DOCKERHUB_CREDENTIALS = credentials('dockeruser')
+        registry = "gopal99489/backend-lms"
         registryCredential = 'dockeruser'
         dockerImage = ''
     }
 
     stages {
-        
-        
-        stage('Building the docker image') {
+        stage('Pipeline Status') {
             steps {
-                sh 'cd api && docker build -t mubeen507/backend-lms .'
+                script {
+                    slackSend(
+                        channel: 'jenkins-updates',
+                        color: '#FFFF00',
+                        message: 'lms-Frontend Pipeline has been Started',
+                        tokenCredentialId: 'slackuser'
+                    )
+                }
             }
         }
-        stage('Logging into dockerhub account') {
+        
+        stage('Building the Docker Image') {
+            steps {
+                sh 'cd api && docker build -t gopal99489/backend-lms .'
+            }
+        }
+
+        stage('Logging into DockerHub Account') {
             steps {
                 sh 'echo $DOCKERHUB_CREDENTIALS_PSW | docker login -u $DOCKERHUB_CREDENTIALS_USR --password-stdin'
             }
         }
-        stage('pushing the docker image into dockerhub') {
+
+        stage('Pushing the Docker Image to DockerHub') {
             steps {
-                  sh 'docker push mubeen507/backend-lms'
+                sh 'docker push gopal99489/backend-lms'
             }
         }
-        stage('Remove old docker images') {
-             steps {
-                 sh 'docker rmi -f mubeen507/backend-lms'
-            }
-        }
-         stage('creating database container') {
-             steps {
-                 sh 'docker container rm --force lmsdb'
-                 sh 'docker run -d -p 5432:5432 --network lmsnetwork -e  POSTGRES_PASSWORD=password --name lmsdb postgres'
-            }
-        }
-         stage('Running the docker container') {
+
+        stage('Remove Old Docker Images') {
             steps {
-                  sh 'docker container rm --force backend'
-                  sh 'docker run -d -p 8080:8080 --network lmsnetwork -e DATABASE_URL=postgresql://postgres:password@lmsdb:5432/postgres --name backend -e PORT=8080 -e MODE=local  mubeen507/backend-lms'
+                sh 'docker rmi -f gopal99489/backend-lms'
+            }
+        }
+
+        stage('Creating Database Container') {
+            steps {
+                sh 'docker container rm --force lmsdb'
+                sh 'docker run -d -p 5432:5432 --network lmsnetwork -e POSTGRES_PASSWORD=password --name lmsdb postgres'
+            }
+        }
+
+        stage('Running the Docker Container') {
+            steps {
+                sh 'docker container rm --force backend'
+                sh '''docker run -d -p 8080:8080 --network lmsnetwork -e DATABASE_URL=postgresql://postgres:password@lmsdb:5432/postgres --name backend -e PORT=8080 -e MODE=local gopal99489/backend-lms'''
+            }
+        }
+    }
+
+    post {
+        success {
+            script {
+                slackSend(
+                    channel: 'jenkins-updates',
+                    color: 'good',
+                    message: 'Congratulations! Front-end job succeeded. Thanks...Gopal',
+                    tokenCredentialId: 'slackuser'
+                )
+                slackUploadFile(
+                    channel: 'jenkins-updates',
+                    credentialId: 'slackuser',
+                    filePath: 'webapp/frontend'
+                )
+                emailext (
+                    body: '''Building lms application frontend job succeeded. Check browser with your IP or domain name.
+
+Thank you,
+Gopal''',
+                    recipientProviders: [buildUser()],
+                    subject: 'Build Successful!! lms_frontend',
+                    to: 'gopal99489@gmail.com'
+                )
+            }
+        }
+        failure {
+            script {
+                slackSend(
+                    channel: 'jenkins-updates',
+                    color: 'danger',
+                    message: 'Oops... Front-end job failed! Check the job configurations. Thanks...Gopal - Job failed',
+                    tokenCredentialId: 'slackuser'
+                )
+                emailext (
+                    body: '''Building lms application frontend job failed. Check job configuration.
+
+Thank you,
+Gopal''',
+                    recipientProviders: [buildUser()],
+                    subject: 'Build failed!! lms_frontend',
+                    to: 'gopal99489@gmail.com'
+                )
             }
         }
     }
