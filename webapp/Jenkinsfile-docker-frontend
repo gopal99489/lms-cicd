@@ -35,7 +35,7 @@ pipeline {
 
         stage('Pushing the docker image into dockerhub') {
             steps {
-                sh 'docker push gopal994891/frontend-lms'
+                sh 'docker push gopal99489/frontend-lms'
             }
         }
 
