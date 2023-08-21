@@ -43,7 +43,7 @@ pipeline {
         }
 stage('Sonarqube code-checking') {
             steps {
-                sh 'docker container run --rm -e SONAR_HOST_URL="http://13.235.9.206:9000" -e SONAR_LOGIN="sqp_090ebc6d99a43e234a05eb39fb0f29d8e8440e0b" -v ".:/usr/src" sonarsource/sonar-scanner-cli -Dsonar.projectKey=lms-backend'
+                sh 'docker container run --rm -e SONAR_HOST_URL="http://65.0.199.33:9000" -e SONAR_LOGIN="sqp_5a38ab70ae04fb312d0f08526816d839e8b8b86a" -v ".:/usr/src" sonarsource/sonar-scanner-cli -Dsonar.projectKey=lms-backend'
             }
         }
 
