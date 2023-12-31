@@ -1,8 +1,6 @@
 pipeline {
-    agent {
-        label 'docker'
-    }
-
+    agent any
+    
     environment {
         DOCKERHUB_CREDENTIALS = credentials('dockeruser')
         registry = "gopal99489/backend-lms"
