@@ -1,0 +1,50 @@
+pipeline {
+    agent {
+        label 'docker'
+    }
+
+    environment {
+        DOCKERHUB_CREDENTIALS = credentials('dockeruser')
+        registry = "gopal99489/frontend-lms"
+        registryCredential = 'dockerhub'
+    }
+
+    stages {
+        stage('Building the docker image') {
+            steps {
+                sh 'cd webapp && docker build -t gopal99489/frontend-lms .'
+            }
+        }
+
+        stage('Logging into dockerhub account') {
+            steps {
+                sh 'echo $DOCKERHUB_CREDENTIALS_PSW | docker login -u $DOCKERHUB_CREDENTIALS_USR --password-stdin'
+            }
+        }
+
+        stage('Pushing the docker image into dockerhub') {
+            steps {
+                sh 'docker push gopal99489/frontend-lms'
+            }
+        }
+
+        stage('Sonarqube code-checking') {
+            steps {
+                sh 'docker container run --rm -e SONAR_HOST_URL="http://65.0.199.33:9000" -e SONAR_LOGIN="sqp_3bc75af54f53b39453898107140e4ddd761d6416" -v ".:/usr/src" sonarsource/sonar-scanner-cli -Dsonar.projectKey=lms-frontend'
+            }
+        }
+
+        stage('Remove old docker images') {
+            steps {
+                sh 'docker rmi -f gopal99489/frontend-lms'
+            }
+        }
+
+        stage('Running the docker container') {
+            steps {
+                sh 'docker container rm --force fe'
+                sh 'docker run -dt -p 8000:80 --name fe gopal99489/frontend-lms'
+            }
+        }
+    }
+}
