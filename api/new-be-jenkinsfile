@@ -1,0 +1,58 @@
+pipeline {
+    agent {
+        label 'docker'
+    }
+
+    environment {
+        DOCKERHUB_CREDENTIALS = credentials('dockeruser')
+        registry = "gopal99489/backend-lms"
+        registryCredential = 'dockeruser'
+        dockerImage = ''
+    }
+
+    stages {
+        stage('Building the Docker Image') {
+            steps {
+                sh 'cd api && docker build -t gopal99489/backend-lms .'
+            }
+        }
+
+        stage('Logging into DockerHub Account') {
+            steps {
+                sh 'echo $DOCKERHUB_CREDENTIALS_PSW | docker login -u $DOCKERHUB_CREDENTIALS_USR --password-stdin'
+            }
+        }
+
+        stage('Pushing the Docker Image to DockerHub') {
+            steps {
+                sh 'docker push gopal99489/backend-lms'
+            }
+        }
+
+        stage('Sonarqube code-checking') {
+            steps {
+                sh 'docker container run --rm -e SONAR_HOST_URL="http://65.0.199.33:9000" -e SONAR_LOGIN="sqp_5a38ab70ae04fb312d0f08526816d839e8b8b86a" -v ".:/usr/src" sonarsource/sonar-scanner-cli -Dsonar.projectKey=lms-backend'
+            }
+        }
+
+        stage('Remove Old Docker Images') {
+            steps {
+                sh 'docker rmi -f gopal99489/backend-lms'
+            }
+        }
+
+        stage('Creating Database Container') {
+            steps {
+                sh 'docker container rm --force lmsdb'
+                sh 'docker run -d -p 5432:5432 --network lmsnetwork -e POSTGRES_PASSWORD=password --name lmsdb postgres'
+            }
+        }
+
+        stage('Running the Docker Container') {
+            steps {
+                sh 'docker container rm --force backend'
+                sh '''docker run -d -p 8080:8080 --network lmsnetwork -e DATABASE_URL=postgresql://postgres:password@lmsdb:5432/postgres --name backend -e PORT=8080 -e MODE=local gopal99489/backend-lms'''
+            }
+        }
+    }
+}
